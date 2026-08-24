@@ -19,7 +19,12 @@ type PreviewData = {
 };
 
 type PipelineResponse = {
-  preview?: PreviewData;
+  preview?: PreviewData | null;
+  project_id?: number;
+  success?: boolean;
+  execution?: unknown;
+  files?: ProjectFile[];
+  [key: string]: unknown;
 };
 
 type ModificationResponse = {
@@ -260,16 +265,28 @@ export default function Dashboard({
 
       setPipeline(data);
 
-      // ------------------------------------------------------
-      // SAVE PREVIEW URL
-      // ------------------------------------------------------
+    // ------------------------------------------------------
+// SAVE PREVIEW URL
+// ------------------------------------------------------
 
-      if (data.preview?.url) {
-        setPreviewUrl(
-          data.preview.url
-        );
-      }
+const returnedPreviewUrl =
+  data?.preview?.url;
 
+if (
+  typeof returnedPreviewUrl === "string" &&
+  returnedPreviewUrl.trim()
+) {
+  setPreviewUrl(
+    returnedPreviewUrl
+  );
+} else {
+  console.warn(
+    "Pipeline completed but no preview URL was returned:",
+    data
+  );
+
+  setPreviewUrl(null);
+}
       // ------------------------------------------------------
       // LOAD WORKSPACE
       // ------------------------------------------------------

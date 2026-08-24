@@ -100,9 +100,12 @@ def validate_generated_files(
 
         if not isinstance(content, str):
             raise ValueError(
-                f"Generated file content must be a string: "
-                f"{file_path}"
+                f"Generated file content must be a string: {file_path}"
             )
+
+        # ----------------------------------------------------
+        # Validate JSON files
+        # ----------------------------------------------------
 
         if Path(file_path).suffix.lower() == ".json":
 
@@ -118,6 +121,10 @@ def validate_generated_files(
                     f"column {exc.colno}: "
                     f"{exc.msg}"
                 ) from exc
+
+        # ----------------------------------------------------
+        # Validate package.json
+        # ----------------------------------------------------
 
         if Path(file_path).name.lower() == "package.json":
 
@@ -158,14 +165,11 @@ def normalize_project_configuration(
     developer_output: dict,
 ) -> dict:
     """
-    Automatically repairs deterministic configuration problems
-    in generated projects.
+    Normalize deterministic project configuration.
 
-    Handles:
-    - Vite scripts
-    - Tailwind dependencies
-    - Tailwind configuration
-    - PostCSS configuration
+    Vite scripts are added when needed.
+
+    Tailwind/PostCSS are NOT injected automatically.
     """
 
     files = developer_output.get(
@@ -189,6 +193,7 @@ def normalize_project_configuration(
         )
 
         if Path(file_path).name.lower() == "package.json":
+
             package_file = file_data
             break
 
@@ -196,6 +201,7 @@ def normalize_project_configuration(
         return developer_output
 
     try:
+
         package_data = json.loads(
             package_file.get(
                 "content",
@@ -204,6 +210,7 @@ def normalize_project_configuration(
         )
 
     except json.JSONDecodeError:
+
         return developer_output
 
     if not isinstance(package_data, dict):
@@ -219,10 +226,16 @@ def normalize_project_configuration(
         {},
     )
 
-    if not isinstance(dependencies, dict):
+    if not isinstance(
+        dependencies,
+        dict,
+    ):
         dependencies = {}
 
-    if not isinstance(dev_dependencies, dict):
+    if not isinstance(
+        dev_dependencies,
+        dict,
+    ):
         dev_dependencies = {}
 
     all_dependencies = {
@@ -236,10 +249,18 @@ def normalize_project_configuration(
 
     file_names = {
         Path(
-            item.get("path", "")
+            item.get(
+                "path",
+                "",
+            )
         ).name.lower()
+
         for item in files
-        if isinstance(item, dict)
+
+        if isinstance(
+            item,
+            dict,
+        )
     }
 
     # ========================================================
@@ -291,139 +312,6 @@ def normalize_project_configuration(
         )
 
         package_data["scripts"] = scripts
-
-    # ========================================================
-    # DETECT TAILWIND
-    # ========================================================
-
-    has_tailwind_css = False
-
-    for file_data in files:
-
-        if not isinstance(file_data, dict):
-            continue
-
-        file_path = file_data.get(
-            "path",
-            "",
-        )
-
-        if not file_path.endswith(
-            (".css", ".scss")
-        ):
-            continue
-
-        content = file_data.get(
-            "content",
-            "",
-        )
-
-        if (
-            "@tailwind base" in content
-            or "@tailwind components" in content
-            or "@tailwind utilities" in content
-        ):
-            has_tailwind_css = True
-            break
-
-    has_tailwind_config = bool(
-        file_names.intersection(
-            {
-                "tailwind.config.js",
-                "tailwind.config.cjs",
-                "tailwind.config.mjs",
-            }
-        )
-    )
-
-    has_postcss_config = bool(
-        file_names.intersection(
-            {
-                "postcss.config.js",
-                "postcss.config.cjs",
-                "postcss.config.mjs",
-            }
-        )
-    )
-
-    is_tailwind_project = (
-        "tailwindcss" in dependency_text
-        or has_tailwind_css
-        or has_tailwind_config
-    )
-
-    if is_tailwind_project:
-
-        # ----------------------------------------------------
-        # Add required dependencies
-        # ----------------------------------------------------
-
-        if "tailwindcss" not in dependencies:
-            dev_dependencies.setdefault(
-                "tailwindcss",
-                "^3.4.17",
-            )
-
-        if "postcss" not in dependencies:
-            dev_dependencies.setdefault(
-                "postcss",
-                "^8.4.49",
-            )
-
-        if "autoprefixer" not in dependencies:
-            dev_dependencies.setdefault(
-                "autoprefixer",
-                "^10.4.20",
-            )
-
-        package_data[
-            "devDependencies"
-        ] = dev_dependencies
-
-        # ----------------------------------------------------
-        # Create Tailwind config if missing
-        # ----------------------------------------------------
-
-        if not has_tailwind_config:
-
-            files.append(
-                {
-                    "path": "tailwind.config.cjs",
-                    "content": """\
-/** @type {import('tailwindcss').Config} */
-module.exports = {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
-  theme: {
-    extend: {},
-  },
-  plugins: [],
-};
-""",
-                }
-            )
-
-        # ----------------------------------------------------
-        # Create PostCSS config if missing
-        # ----------------------------------------------------
-
-        if not has_postcss_config:
-
-            files.append(
-                {
-                    "path": "postcss.config.cjs",
-                    "content": """\
-module.exports = {
-  plugins: {
-    tailwindcss: {},
-    autoprefixer: {},
-  },
-};
-""",
-                }
-            )
 
     # ========================================================
     # WRITE NORMALIZED PACKAGE.JSON
@@ -497,6 +385,7 @@ def get_workspace_files(
             continue
 
         try:
+
             content = path.read_text(
                 encoding="utf-8"
             )
@@ -627,7 +516,7 @@ def run_full_agent_pipeline(
         )
 
         # ==================================================
-        # AUTOMATIC CONFIGURATION NORMALIZATION
+        # NORMALIZE CONFIGURATION
         # ==================================================
 
         developer_data = normalize_project_configuration(
@@ -635,7 +524,7 @@ def run_full_agent_pipeline(
         )
 
         # ==================================================
-        # WORKSPACE
+        # WRITE WORKSPACE
         # ==================================================
 
         pipeline_run.status = "BUILDING_WORKSPACE"
@@ -654,7 +543,7 @@ def run_full_agent_pipeline(
         )
 
         # ==================================================
-        # DEPENDENCY INSTALLATION
+        # INSTALL DEPENDENCIES
         # ==================================================
 
         pipeline_run.status = "INSTALLING_DEPENDENCIES"
@@ -674,7 +563,7 @@ def run_full_agent_pipeline(
             )
 
         # ==================================================
-        # EXECUTION + SELF HEALING
+        # TEST + BUILD + FIX LOOP
         # ==================================================
 
         execution_history = []
@@ -684,9 +573,9 @@ def run_full_agent_pipeline(
 
         while fix_attempts <= MAX_FIX_ATTEMPTS:
 
-            # ==================================================
+            # --------------------------------------------------
             # TEST
-            # ==================================================
+            # --------------------------------------------------
 
             pipeline_run.status = "TESTING"
             pipeline_run.current_agent = "TEST_RUNNER"
@@ -697,9 +586,9 @@ def run_full_agent_pipeline(
                 project_id=project_id,
             )
 
-            # ==================================================
+            # --------------------------------------------------
             # BUILD
-            # ==================================================
+            # --------------------------------------------------
 
             pipeline_run.status = "BUILDING"
             pipeline_run.current_agent = "BUILD_RUNNER"
@@ -725,15 +614,19 @@ def run_full_agent_pipeline(
                 False,
             )
 
+            print(
+                f"[PIPELINE] Build success: {build_success}"
+            )
+
             if build_success:
                 break
 
             if fix_attempts >= MAX_FIX_ATTEMPTS:
                 break
 
-            # ==================================================
-            # AI FIXER
-            # ==================================================
+            # --------------------------------------------------
+            # FIXER
+            # --------------------------------------------------
 
             pipeline_run.status = "FIXING"
             pipeline_run.current_agent = "FIXER"
@@ -764,44 +657,68 @@ def run_full_agent_pipeline(
 
             fix_attempts += 1
 
-    # ==================================================
-# PREVIEW
-# ==================================================
+        # ==================================================
+        # PREVIEW
+        # ==================================================
 
-        preview_result = None
+        pipeline_run.status = "STARTING_PREVIEW"
+        pipeline_run.current_agent = "PREVIEW"
+
+        db.commit()
+
+        print(
+            f"[PREVIEW] Attempting preview for project "
+            f"{project_id}"
+        )
+
+        print(
+            f"[PREVIEW] Build success: {build_success}"
+        )
 
         if build_success:
 
-            pipeline_run.status = "STARTING_PREVIEW"
-            pipeline_run.current_agent = "PREVIEW"
+            try:
 
-            db.commit()
+                preview_result = start_project_preview(
+                    project_id=project_id,
+                )
 
-        try:
+                print(
+                    f"[PREVIEW] Result: {preview_result}"
+                )
 
-            preview_result = start_project_preview(
-                project_id=project_id,
-        )
+            except Exception as exc:
 
-        except Exception as exc:
+                print(
+                    f"[PREVIEW] FAILED: {exc}"
+                )
+
+                preview_result = {
+                    "project_id": project_id,
+                    "status": "FAILED",
+                    "url": None,
+                    "port": None,
+                    "error": str(exc),
+                }
+
+        else:
+
+            print(
+                "[PREVIEW] Skipped because the project "
+                "did not successfully build."
+            )
 
             preview_result = {
                 "project_id": project_id,
-                "status": "FAILED",
+                "status": "BUILD_FAILED",
                 "url": None,
-                "error": str(exc),
+                "port": None,
+                "error": (
+                    "Preview was not started because "
+                    "the production build failed."
+                ),
             }
 
-            pipeline_run.status = "FAILED"
-            pipeline_run.current_agent = None
-            pipeline_run.error_message = (
-                 f"Preview failed: {str(exc)[:900]}"
-            )
-            pipeline_run.completed_at = datetime.utcnow()
-
-            db.commit()
-
-            raise
         # ==================================================
         # FINAL STATUS
         # ==================================================
@@ -809,18 +726,18 @@ def run_full_agent_pipeline(
         if build_success:
 
             pipeline_run.status = "COMPLETED"
-            pipeline_run.current_agent = None
-            pipeline_run.completed_at = datetime.utcnow()
 
         else:
 
             pipeline_run.status = "FAILED"
-            pipeline_run.current_agent = None
+
             pipeline_run.error_message = (
                 "Project failed after "
-                f"{MAX_FIX_ATTEMPTS} fix attempts."
+                f"{fix_attempts} fix attempts."
             )
-            pipeline_run.completed_at = datetime.utcnow()
+
+        pipeline_run.current_agent = None
+        pipeline_run.completed_at = datetime.utcnow()
 
         db.commit()
         db.refresh(pipeline_run)

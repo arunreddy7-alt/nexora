@@ -4,9 +4,15 @@ import subprocess
 from typing import Any
 
 
+# ============================================================
+# ALLOWED COMMANDS
+# ============================================================
+
 ALLOWED_COMMANDS = {
     "npm install",
+    "npm install --no-audit --no-fund",
     "npm ci",
+    "npm ci --no-audit --no-fund",
     "npm test",
     "npm run test",
     "npm run build",
@@ -18,7 +24,7 @@ ALLOWED_COMMANDS = {
 # TIMEOUTS
 # ============================================================
 
-INSTALL_TIMEOUT = 120
+INSTALL_TIMEOUT = 300
 TEST_TIMEOUT = 120
 BUILD_TIMEOUT = 180
 
@@ -27,10 +33,7 @@ BUILD_TIMEOUT = 180
 # WORKSPACE
 # ============================================================
 
-def get_workspace(
-    project_id: int,
-) -> Path:
-
+def get_workspace(project_id: int) -> Path:
     workspace = (
         Path(__file__).resolve().parents[3]
         / "workspaces"
@@ -49,10 +52,7 @@ def get_workspace(
 # COMMAND VALIDATION
 # ============================================================
 
-def validate_command(
-    command: str,
-) -> None:
-
+def validate_command(command: str) -> None:
     command = command.strip()
 
     if command not in ALLOWED_COMMANDS:
@@ -73,52 +73,89 @@ def run_command(
 
     validate_command(command)
 
+    print(f"[EXEC] Starting: {command}")
+    print(f"[EXEC] Directory: {workspace}")
+    print(f"[EXEC] Timeout: {timeout}s")
+
+    process = None
+
     try:
-
-        print(
-            f"[EXEC] Starting: {command}"
-        )
-
-        result = subprocess.run(
+        process = subprocess.Popen(
             command,
             cwd=workspace,
             shell=True,
-            capture_output=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
             text=True,
             encoding="utf-8",
             errors="replace",
-            timeout=timeout,
         )
+
+        try:
+            stdout, _ = process.communicate(
+                timeout=timeout
+            )
+
+        except subprocess.TimeoutExpired:
+
+            print(
+                f"[EXEC] TIMEOUT: {command} "
+                f"after {timeout}s"
+            )
+
+            # Kill npm and all child processes on Windows.
+            if process.poll() is None:
+
+                try:
+                    subprocess.run(
+                        [
+                            "taskkill",
+                            "/F",
+                            "/T",
+                            "/PID",
+                            str(process.pid),
+                        ],
+                        capture_output=True,
+                        text=True,
+                        timeout=10,
+                    )
+                except Exception:
+                    pass
+
+            try:
+                stdout, _ = process.communicate(
+                    timeout=10
+                )
+            except Exception:
+                stdout = ""
+
+            return {
+                "command": command,
+                "return_code": -1,
+                "success": False,
+                "stdout": stdout or "",
+                "stderr": (
+                    f"Command timed out after "
+                    f"{timeout} seconds."
+                ),
+            }
+
+        return_code = process.returncode
 
         print(
             f"[EXEC] Finished: {command} "
-            f"(exit={result.returncode})"
+            f"(exit={return_code})"
         )
 
+        output = stdout or ""
+
+        # npm writes useful information to stdout.
         return {
             "command": command,
-            "return_code": result.returncode,
-            "success": result.returncode == 0,
-            "stdout": result.stdout,
-            "stderr": result.stderr,
-        }
-
-    except subprocess.TimeoutExpired:
-
-        print(
-            f"[EXEC] TIMEOUT: {command} "
-            f"after {timeout}s"
-        )
-
-        return {
-            "command": command,
-            "return_code": -1,
-            "success": False,
-            "stdout": "",
-            "stderr": (
-                f"Command timed out after "
-                f"{timeout} seconds."
-            ),
+            "return_code": return_code,
+            "success": return_code == 0,
+            "stdout": output,
+            "stderr": "",
         }
 
     except Exception as exc:
@@ -126,6 +163,25 @@ def run_command(
         print(
             f"[EXEC] ERROR: {command}: {exc}"
         )
+
+        if process is not None:
+
+            try:
+                if process.poll() is None:
+                    subprocess.run(
+                        [
+                            "taskkill",
+                            "/F",
+                            "/T",
+                            "/PID",
+                            str(process.pid),
+                        ],
+                        capture_output=True,
+                        text=True,
+                        timeout=10,
+                    )
+            except Exception:
+                pass
 
         return {
             "command": command,
@@ -144,29 +200,21 @@ def get_package_json(
     project_id: int,
 ) -> dict[str, Any] | None:
 
-    workspace = get_workspace(
-        project_id
-    )
+    workspace = get_workspace(project_id)
 
-    package_json = (
-        workspace / "package.json"
-    )
+    package_json = workspace / "package.json"
 
     if not package_json.exists():
         return None
 
     try:
-
         data = json.loads(
             package_json.read_text(
                 encoding="utf-8"
             )
         )
 
-        if not isinstance(
-            data,
-            dict,
-        ):
+        if not isinstance(data, dict):
             return None
 
         return data
@@ -175,7 +223,6 @@ def get_package_json(
         json.JSONDecodeError,
         OSError,
     ):
-
         return None
 
 
@@ -187,9 +234,7 @@ def has_node_modules(
     workspace: Path,
 ) -> bool:
 
-    node_modules = (
-        workspace / "node_modules"
-    )
+    node_modules = workspace / "node_modules"
 
     if not node_modules.exists():
         return False
@@ -197,16 +242,11 @@ def has_node_modules(
     if not node_modules.is_dir():
         return False
 
-    # A completely empty node_modules directory is
-    # not considered a successful installation.
     try:
-
         return any(
             node_modules.iterdir()
         )
-
     except OSError:
-
         return False
 
 
@@ -218,17 +258,9 @@ def install_project_dependencies(
     project_id: int,
 ) -> dict[str, Any]:
 
-    workspace = get_workspace(
-        project_id
-    )
+    workspace = get_workspace(project_id)
 
-    package_json = (
-        workspace / "package.json"
-    )
-
-    # --------------------------------------------------------
-    # No package.json
-    # --------------------------------------------------------
+    package_json = workspace / "package.json"
 
     if not package_json.exists():
 
@@ -243,19 +275,14 @@ def install_project_dependencies(
         }
 
     # --------------------------------------------------------
-    # Existing node_modules
-    #
-    # This is important for projects that have already been
-    # installed successfully.
+    # If dependencies are already installed, don't reinstall.
     # --------------------------------------------------------
 
-    if has_node_modules(
-        workspace
-    ):
+    if has_node_modules(workspace):
 
         print(
             "[EXEC] node_modules already exists. "
-            "Skipping npm install."
+            "Skipping npm installation."
         )
 
         return {
@@ -275,20 +302,42 @@ def install_project_dependencies(
         }
 
     # --------------------------------------------------------
-    # Fresh installation
+    # Select npm ci when package-lock exists.
+    # Otherwise npm install.
     # --------------------------------------------------------
+
+    package_lock = (
+        workspace / "package-lock.json"
+    )
+
+    if package_lock.exists():
+
+        command = (
+            "npm ci --no-audit --no-fund"
+        )
+
+    else:
+
+        command = (
+            "npm install --no-audit --no-fund"
+        )
+
+    print(
+        "[EXEC] Installing dependencies:"
+    )
+    print(
+        f"[EXEC] {command}"
+    )
 
     install_result = run_command(
         workspace=workspace,
-        command="npm install",
+        command=command,
         timeout=INSTALL_TIMEOUT,
     )
 
     return {
         "stage": "install",
-        "success": install_result[
-            "success"
-        ],
+        "success": install_result["success"],
         "skipped": False,
         "install": install_result,
     }
@@ -347,10 +396,6 @@ def run_project_tests(
         project_id
     )
 
-    # --------------------------------------------------------
-    # No test script
-    # --------------------------------------------------------
-
     if not has_test_script(
         project_id
     ):
@@ -377,10 +422,6 @@ def run_project_tests(
             },
         }
 
-    # --------------------------------------------------------
-    # Run tests
-    # --------------------------------------------------------
-
     test_result = run_command(
         workspace=workspace,
         command="npm test",
@@ -389,9 +430,7 @@ def run_project_tests(
 
     return {
         "stage": "test",
-        "success": test_result[
-            "success"
-        ],
+        "success": test_result["success"],
         "skipped": False,
         "test": test_result,
     }
@@ -450,10 +489,6 @@ def run_project_build(
         project_id
     )
 
-    # --------------------------------------------------------
-    # Build script required
-    # --------------------------------------------------------
-
     if not has_build_script(
         project_id
     ):
@@ -478,10 +513,6 @@ def run_project_build(
             },
         }
 
-    # --------------------------------------------------------
-    # Run build
-    # --------------------------------------------------------
-
     build_result = run_command(
         workspace=workspace,
         command="npm run build",
@@ -490,9 +521,7 @@ def run_project_build(
 
     return {
         "stage": "build",
-        "success": build_result[
-            "success"
-        ],
+        "success": build_result["success"],
         "skipped": False,
         "build": build_result,
     }
