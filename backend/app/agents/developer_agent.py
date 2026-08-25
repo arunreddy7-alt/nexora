@@ -107,6 +107,31 @@ If index.css exists, it MUST be imported.
 
 Never generate a stylesheet that is not actually used.
 
+
+==================================================
+CSS IMPORT CONSISTENCY
+==================================================
+
+For React + Vite projects using normal CSS:
+
+The stylesheet MUST be:
+
+src/index.css
+
+src/main.tsx MUST contain:
+
+import "./index.css";
+
+Do NOT import "./styles.css" from App.tsx.
+
+Do NOT create both index.css and styles.css unless explicitly
+required by the architecture.
+
+Every generated stylesheet import MUST point to an existing file.
+
+Before returning the project, verify that the CSS file exists and
+that the import path exactly matches its generated path.
+
 ==================================================
 UI QUALITY
 ==================================================

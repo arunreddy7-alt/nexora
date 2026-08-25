@@ -102,7 +102,9 @@ export default function Dashboard({
     useState("");
 
   const [pipeline, setPipeline] =
-    useState<PipelineResponse | null>(null);
+    useState<PipelineResponse | null>(
+      null
+    );
 
   const [previewUrl, setPreviewUrl] =
     useState<string | null>(null);
@@ -123,7 +125,9 @@ export default function Dashboard({
     useState(false);
 
   const [modificationResult, setModificationResult] =
-    useState<ModificationResponse | null>(null);
+    useState<ModificationResponse | null>(
+      null
+    );
 
   const token =
     localStorage.getItem("access_token");
@@ -138,35 +142,18 @@ export default function Dashboard({
       : {}),
   };
 
-  // ==========================================================
-  // NEW PROJECT
-  // ==========================================================
-
   function startNewProject() {
     setProjectId(null);
-
     setDescription("");
-
     setError("");
-
     setPipeline(null);
-
     setPreviewUrl(null);
-
     setFiles([]);
-
     setSelectedFile(null);
-
     setModificationResult(null);
-
     setModifying(false);
-
     setActivePanel("projects");
   }
-
-  // ==========================================================
-  // GENERATE PROJECT
-  // ==========================================================
 
   async function generateProject() {
     if (!description.trim()) {
@@ -178,26 +165,15 @@ export default function Dashboard({
     }
 
     setLoading(true);
-
     setError("");
-
     setPipeline(null);
-
     setPreviewUrl(null);
-
     setFiles([]);
-
     setSelectedFile(null);
-
     setModificationResult(null);
-
     setProjectId(null);
 
     try {
-      // ------------------------------------------------------
-      // CREATE PROJECT
-      // ------------------------------------------------------
-
       const projectResponse =
         await fetch(
           `${API_BASE_URL}/api/projects`,
@@ -233,10 +209,6 @@ export default function Dashboard({
         createdProjectId
       );
 
-      // ------------------------------------------------------
-      // RUN PIPELINE
-      // ------------------------------------------------------
-
       const pipelineResponse =
         await fetch(
           `${API_BASE_URL}/api/projects/${createdProjectId}/agent-outputs/run-pipeline?project_description=${encodeURIComponent(
@@ -265,31 +237,20 @@ export default function Dashboard({
 
       setPipeline(data);
 
-    // ------------------------------------------------------
-// SAVE PREVIEW URL
-// ------------------------------------------------------
+      const returnedPreviewUrl =
+        data?.preview?.url;
 
-const returnedPreviewUrl =
-  data?.preview?.url;
-
-if (
-  typeof returnedPreviewUrl === "string" &&
-  returnedPreviewUrl.trim()
-) {
-  setPreviewUrl(
-    returnedPreviewUrl
-  );
-} else {
-  console.warn(
-    "Pipeline completed but no preview URL was returned:",
-    data
-  );
-
-  setPreviewUrl(null);
-}
-      // ------------------------------------------------------
-      // LOAD WORKSPACE
-      // ------------------------------------------------------
+      if (
+        typeof returnedPreviewUrl ===
+          "string" &&
+        returnedPreviewUrl.trim()
+      ) {
+        setPreviewUrl(
+          returnedPreviewUrl
+        );
+      } else {
+        setPreviewUrl(null);
+      }
 
       await loadWorkspace(
         createdProjectId
@@ -304,10 +265,6 @@ if (
       setLoading(false);
     }
   }
-
-  // ==========================================================
-  // MODIFY EXISTING PROJECT
-  // ==========================================================
 
   async function modifyProject() {
     if (!projectId) {
@@ -327,9 +284,7 @@ if (
     }
 
     setModifying(true);
-
     setError("");
-
     setModificationResult(null);
 
     try {
@@ -367,19 +322,9 @@ if (
         );
       }
 
-      // ------------------------------------------------------
-      // IMPORTANT:
-      // Keep the existing project ID.
-      // We DO NOT create a new project here.
-      // ------------------------------------------------------
-
       await loadWorkspace(
         projectId
       );
-
-      // ------------------------------------------------------
-      // KEEP EXISTING PREVIEW
-      // ------------------------------------------------------
 
       if (previewUrl) {
         const separator =
@@ -387,16 +332,10 @@ if (
             ? "&"
             : "?";
 
-        const refreshedUrl =
-          `${previewUrl}${separator}refresh=${Date.now()}`;
-
         setPreviewUrl(
-          refreshedUrl
+          `${previewUrl}${separator}refresh=${Date.now()}`
         );
       }
-
-      // Clear the modification prompt
-      // after a successful update.
 
       setDescription("");
     } catch (error) {
@@ -409,10 +348,6 @@ if (
       setModifying(false);
     }
   }
-
-  // ==========================================================
-  // LOAD WORKSPACE
-  // ==========================================================
 
   async function loadWorkspace(
     currentProjectId: number
@@ -439,9 +374,7 @@ if (
       ProjectFile[] =
       data.files || [];
 
-    setFiles(
-      projectFiles
-    );
+    setFiles(projectFiles);
 
     if (projectFiles.length > 0) {
       setSelectedFile(
@@ -452,30 +385,31 @@ if (
     }
   }
 
-  // ==========================================================
-  // UI
-  // ==========================================================
-
   return (
     <div className="dashboard">
 
-      {/* ================================================== */}
       {/* NAVIGATION */}
-      {/* ================================================== */}
 
       <header className="dashboard-nav">
 
-        <div className="brand">
-
-          <span className="brand-mark">
-            N
+        <button
+          type="button"
+          className="brand"
+          onClick={() =>
+            setActivePanel("projects")
+          }
+        >
+          <span
+            className="brand-mark"
+            aria-hidden="true"
+          >
+            <span className="logo-line logo-line-one" />
+            <span className="logo-line logo-line-two" />
+            <span className="logo-core" />
           </span>
 
-          <span>
-            Nexora
-          </span>
-
-        </div>
+          <span>Nexora</span>
+        </button>
 
         <nav className="dashboard-tabs">
 
@@ -527,15 +461,12 @@ if (
         <div className="dashboard-nav-right">
 
           <span className="nav-status">
-
             <span className="live-dot" />
-
             AI ENGINEERING PLATFORM
-
           </span>
 
           <button
-            className="ghost-button dark-ghost"
+            className="logout-button"
             onClick={onLogout}
           >
             Logout
@@ -545,53 +476,39 @@ if (
 
       </header>
 
-      {/* ================================================== */}
+
       {/* TEAMS */}
-      {/* ================================================== */}
 
       {activePanel === "teams" && (
         <main className="dashboard-main">
-
           <TeamsPanel />
-
         </main>
       )}
 
-      {/* ================================================== */}
+
       {/* MEETINGS */}
-      {/* ================================================== */}
 
       {activePanel === "meetings" && (
         <main className="dashboard-main">
-
           <MeetingsPanel />
-
         </main>
       )}
 
-      {/* ================================================== */}
+
       {/* PROJECTS */}
-      {/* ================================================== */}
 
       {activePanel === "projects" && (
         <main className="dashboard-main">
 
-          {/* ================================================= */}
-          {/* BUILDER / MODIFIER */}
-          {/* ================================================= */}
-
           <div className="dashboard-hero">
 
-            <div className="section-kicker light-kicker">
-
+            <div className="section-kicker">
               {projectId
-                ? "// EXISTING PROJECT"
-                : "// MULTI-AGENT SOFTWARE ENGINEERING"}
-
+                ? "EDIT PROJECT"
+                : "AI SOFTWARE ENGINEERING"}
             </div>
 
             <h1>
-
               {projectId ? (
                 <>
                   What would you
@@ -609,15 +526,12 @@ if (
                   </span>
                 </>
               )}
-
             </h1>
 
             <p>
-
               {projectId
-                ? "Describe any change you want to make to this project. Nexora will modify the existing application without creating a new project."
+                ? "Describe any change you want to make to this project. Nexora will modify the existing application."
                 : "Describe your application. Nexora will plan, architect, develop, test and launch it."}
-
             </p>
 
             <div className="builder-box">
@@ -635,7 +549,7 @@ if (
                 }
                 placeholder={
                   projectId
-                    ? "e.g. Add dark mode, create a contact page, change the navbar, add authentication..."
+                    ? "e.g. Add dark mode, create a contact page, change the navbar..."
                     : "e.g. Build an app for cafes with menus, reservations and online ordering..."
                 }
               />
@@ -643,6 +557,7 @@ if (
               <div className="builder-actions">
 
                 <button
+                  className="primary-builder-button"
                   onClick={
                     projectId
                       ? modifyProject
@@ -653,7 +568,6 @@ if (
                     modifying
                   }
                 >
-
                   {loading
                     ? "Building project..."
                     : modifying
@@ -661,23 +575,20 @@ if (
                     : projectId
                     ? "Modify Project →"
                     : "Generate Project →"}
-
                 </button>
 
                 {projectId &&
                   !loading &&
                   !modifying && (
-
                     <button
                       type="button"
-                      className="ghost-button"
+                      className="secondary-builder-button"
                       onClick={
                         startNewProject
                       }
                     >
                       + New Project
                     </button>
-
                   )}
 
               </div>
@@ -692,21 +603,18 @@ if (
 
           </div>
 
-          {/* ================================================= */}
+
           {/* MODIFICATION RESULT */}
-          {/* ================================================= */}
 
           {modificationResult &&
             !modifying && (
-
               <section className="dashboard-section">
 
                 <div className="project-action-card">
 
                   <div>
-
-                    <div className="section-kicker light-kicker">
-                      // PROJECT UPDATED
+                    <div className="section-kicker">
+                      PROJECT UPDATED
                     </div>
 
                     <h2>
@@ -714,13 +622,10 @@ if (
                     </h2>
 
                     <p>
-                      Project #
-                      {projectId}
-                      {" "}
+                      Project #{projectId}{" "}
                       was updated without
                       creating a new project.
                     </p>
-
                   </div>
 
                   <div className="project-actions">
@@ -733,16 +638,12 @@ if (
                       .changes
                       ?.total_changes !==
                       undefined && (
-
-                      <span>
-
+                      <span className="change-count">
                         {
                           modificationResult
                             .changes
                             .total_changes
-                        }
-
-                        {" "}
+                        }{" "}
                         file
                         {modificationResult
                           .changes
@@ -751,9 +652,7 @@ if (
                           ? ""
                           : "s"}{" "}
                         changed
-
                       </span>
-
                     )}
 
                   </div>
@@ -761,17 +660,13 @@ if (
                 </div>
 
               </section>
-
             )}
 
-          {/* ================================================= */}
+
           {/* PIPELINE */}
-          {/* ================================================= */}
 
           {loading && (
-            <Pipeline
-              running
-            />
+            <Pipeline running />
           )}
 
           {pipeline &&
@@ -779,21 +674,18 @@ if (
               <Pipeline />
             )}
 
-          {/* ================================================= */}
+
           {/* PROJECT ACTIONS */}
-          {/* ================================================= */}
 
           {projectId &&
             !loading && (
-
               <section className="dashboard-section project-actions-section">
 
                 <div className="project-action-card">
 
                   <div>
-
-                    <div className="section-kicker light-kicker">
-                      // PROJECT READY
+                    <div className="section-kicker">
+                      PROJECT READY
                     </div>
 
                     <h2>
@@ -805,13 +697,11 @@ if (
                       modify or download
                       the application.
                     </p>
-
                   </div>
 
                   <div className="project-actions">
 
                     {previewUrl && (
-
                       <a
                         className="preview-link action-link"
                         href={previewUrl}
@@ -820,7 +710,6 @@ if (
                       >
                         Open Preview →
                       </a>
-
                     )}
 
                     <DownloadProjectButton
@@ -834,23 +723,19 @@ if (
                 </div>
 
               </section>
-
             )}
 
-          {/* ================================================= */}
+
           {/* LIVE PREVIEW */}
-          {/* ================================================= */}
 
           {previewUrl && (
-
             <section className="dashboard-section">
 
               <div className="dashboard-section-head">
 
                 <div>
-
-                  <div className="section-kicker light-kicker">
-                    // LIVE OUTPUT
+                  <div className="section-kicker">
+                    LIVE OUTPUT
                   </div>
 
                   <h2>
@@ -861,7 +746,6 @@ if (
                     Your generated
                     application is running.
                   </p>
-
                 </div>
 
                 <a
@@ -898,23 +782,19 @@ if (
               </div>
 
             </section>
-
           )}
 
-          {/* ================================================= */}
+
           {/* WORKSPACE */}
-          {/* ================================================= */}
 
           {files.length > 0 && (
-
             <section className="dashboard-section">
 
               <div className="dashboard-section-head">
 
                 <div>
-
-                  <div className="section-kicker light-kicker">
-                    // WORKSPACE
+                  <div className="section-kicker">
+                    WORKSPACE
                   </div>
 
                   <h2>
@@ -922,23 +802,19 @@ if (
                   </h2>
 
                   <p>
-                    {files.length}
-                    {" "}
-                    files currently
-                    in the project.
+                    {files.length} files
+                    currently in the
+                    project.
                   </p>
-
                 </div>
 
                 {projectId && (
-
                   <DownloadProjectButton
                     projectId={
                       projectId
                     }
                     label="Download ZIP"
                   />
-
                 )}
 
               </div>
@@ -949,7 +825,6 @@ if (
 
                   {files.map(
                     (file) => (
-
                       <button
                         key={file.path}
                         className={
@@ -964,15 +839,12 @@ if (
                           )
                         }
                       >
-
                         <span>
                           ◈
                         </span>
 
                         {file.path}
-
                       </button>
-
                     )
                   )}
 
@@ -982,7 +854,6 @@ if (
 
                   {selectedFile ? (
                     <>
-
                       <div className="code-title">
                         {
                           selectedFile.path
@@ -994,14 +865,11 @@ if (
                           selectedFile.content
                         }
                       </pre>
-
                     </>
                   ) : (
-
                     <div className="empty-code">
                       Select a file.
                     </div>
-
                   )}
 
                 </div>
@@ -1009,7 +877,6 @@ if (
               </div>
 
             </section>
-
           )}
 
         </main>
@@ -1020,16 +887,15 @@ if (
 }
 
 
-/* ========================================================== */
-/* PIPELINE                                                   */
-/* ========================================================== */
+/* =========================================================
+   PIPELINE
+========================================================= */
 
 function Pipeline({
   running = false,
 }: {
   running?: boolean;
 }) {
-
   const agents = [
     "CEO",
     "PM",
@@ -1045,15 +911,13 @@ function Pipeline({
       <div className="pipeline-head">
 
         <div>
-
-          <div className="section-kicker light-kicker">
-            // ORCHESTRATOR
+          <div className="section-kicker">
+            PIPELINE
           </div>
 
           <h2>
             Engineering pipeline
           </h2>
-
         </div>
 
         <span
@@ -1074,7 +938,6 @@ function Pipeline({
 
         {agents.map(
           (agent, index) => (
-
             <div
               className="pipeline-agent"
               key={agent}
@@ -1098,13 +961,10 @@ function Pipeline({
 
               {index <
                 agents.length - 1 && (
-
                 <div className="agent-connector" />
-
               )}
 
             </div>
-
           )
         )}
 

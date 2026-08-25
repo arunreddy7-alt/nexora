@@ -24,13 +24,16 @@ type TeamProject = {
   owner_id: number;
   team_id: number | null;
   created_at: string;
+  status?: string;
 };
 
 function authHeaders(): HeadersInit {
-  const token = localStorage.getItem("access_token");
+  const token =
+    localStorage.getItem("access_token");
 
   return {
     "Content-Type": "application/json",
+
     ...(token
       ? {
           Authorization: `Bearer ${token}`,
@@ -40,18 +43,32 @@ function authHeaders(): HeadersInit {
 }
 
 export default function TeamsPanel() {
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [selectedTeam, setSelectedTeam] = useState<Team | null>(null);
+  const [teams, setTeams] =
+    useState<Team[]>([]);
 
-  const [members, setMembers] = useState<TeamMember[]>([]);
-  const [projects, setProjects] = useState<TeamProject[]>([]);
+  const [selectedTeam, setSelectedTeam] =
+    useState<Team | null>(null);
 
-  const [teamName, setTeamName] = useState("");
-  const [memberId, setMemberId] = useState("");
+  const [members, setMembers] =
+    useState<TeamMember[]>([]);
 
-  const [loading, setLoading] = useState(false);
-  const [loadingDetails, setLoadingDetails] = useState(false);
-  const [error, setError] = useState("");
+  const [projects, setProjects] =
+    useState<TeamProject[]>([]);
+
+  const [teamName, setTeamName] =
+    useState("");
+
+  const [memberId, setMemberId] =
+    useState("");
+
+  const [loading, setLoading] =
+    useState(false);
+
+  const [loadingDetails, setLoadingDetails] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
 
   useEffect(() => {
     loadTeams();
@@ -69,11 +86,13 @@ export default function TeamsPanel() {
         }
       );
 
-      const data = await response.json();
+      const data =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
-          data?.detail || "Failed to load teams."
+          data?.detail ||
+            "Failed to load teams."
         );
       }
 
@@ -104,17 +123,20 @@ export default function TeamsPanel() {
         {
           method: "POST",
           headers: authHeaders(),
+
           body: JSON.stringify({
             name: teamName.trim(),
           }),
         }
       );
 
-      const data = await response.json();
+      const data =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
-          data?.detail || "Failed to create team."
+          data?.detail ||
+            "Failed to create team."
         );
       }
 
@@ -138,29 +160,37 @@ export default function TeamsPanel() {
     }
   }
 
-  async function loadTeamDetails(teamId: number) {
+  async function loadTeamDetails(
+    teamId: number
+  ) {
     try {
       setLoadingDetails(true);
       setError("");
 
-      const [membersResponse, projectsResponse] =
-        await Promise.all([
-          fetch(
-            `${API_BASE_URL}/api/teams/${teamId}/members`,
-            {
-              headers: authHeaders(),
-            }
-          ),
-          fetch(
-            `${API_BASE_URL}/api/teams/${teamId}/projects`,
-            {
-              headers: authHeaders(),
-            }
-          ),
-        ]);
+      const [
+        membersResponse,
+        projectsResponse,
+      ] = await Promise.all([
+        fetch(
+          `${API_BASE_URL}/api/teams/${teamId}/members`,
+          {
+            headers: authHeaders(),
+          }
+        ),
 
-      const membersData = await membersResponse.json();
-      const projectsData = await projectsResponse.json();
+        fetch(
+          `${API_BASE_URL}/api/teams/${teamId}/projects`,
+          {
+            headers: authHeaders(),
+          }
+        ),
+      ]);
+
+      const membersData =
+        await membersResponse.json();
+
+      const projectsData =
+        await projectsResponse.json();
 
       if (!membersResponse.ok) {
         throw new Error(
@@ -189,7 +219,9 @@ export default function TeamsPanel() {
     }
   }
 
-  async function selectTeam(team: Team) {
+  async function selectTeam(
+    team: Team
+  ) {
     setSelectedTeam(team);
     await loadTeamDetails(team.id);
   }
@@ -197,32 +229,42 @@ export default function TeamsPanel() {
   async function addMember() {
     if (!selectedTeam) return;
 
-    const parsedUserId = Number(memberId);
+    const parsedUserId =
+      Number(memberId);
 
-    if (!parsedUserId || parsedUserId <= 0) {
-      setError("Enter a valid user ID.");
+    if (
+      !parsedUserId ||
+      parsedUserId <= 0
+    ) {
+      setError(
+        "Enter a valid user ID."
+      );
       return;
     }
 
     try {
       setError("");
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/teams/${selectedTeam.id}/members`,
-        {
-          method: "POST",
-          headers: authHeaders(),
-          body: JSON.stringify({
-            user_id: parsedUserId,
-          }),
-        }
-      );
+      const response =
+        await fetch(
+          `${API_BASE_URL}/api/teams/${selectedTeam.id}/members`,
+          {
+            method: "POST",
+            headers: authHeaders(),
 
-      const data = await response.json();
+            body: JSON.stringify({
+              user_id: parsedUserId,
+            }),
+          }
+        );
+
+      const data =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
-          data?.detail || "Failed to add member."
+          data?.detail ||
+            "Failed to add member."
         );
       }
 
@@ -241,19 +283,22 @@ export default function TeamsPanel() {
     }
   }
 
-  async function removeMember(userId: number) {
+  async function removeMember(
+    userId: number
+  ) {
     if (!selectedTeam) return;
 
     try {
       setError("");
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/teams/${selectedTeam.id}/members/${userId}`,
-        {
-          method: "DELETE",
-          headers: authHeaders(),
-        }
-      );
+      const response =
+        await fetch(
+          `${API_BASE_URL}/api/teams/${selectedTeam.id}/members/${userId}`,
+          {
+            method: "DELETE",
+            headers: authHeaders(),
+          }
+        );
 
       const data =
         response.status === 204
@@ -262,13 +307,15 @@ export default function TeamsPanel() {
 
       if (!response.ok) {
         throw new Error(
-          data?.detail || "Failed to remove member."
+          data?.detail ||
+            "Failed to remove member."
         );
       }
 
       setMembers((current) =>
         current.filter(
-          (member) => member.user_id !== userId
+          (member) =>
+            member.user_id !== userId
         )
       );
     } catch (error) {
@@ -283,22 +330,24 @@ export default function TeamsPanel() {
   async function deleteTeam() {
     if (!selectedTeam) return;
 
-    const confirmed = window.confirm(
-      `Delete "${selectedTeam.name}"?`
-    );
+    const confirmed =
+      window.confirm(
+        `Delete "${selectedTeam.name}"?`
+      );
 
     if (!confirmed) return;
 
     try {
       setError("");
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/teams/${selectedTeam.id}`,
-        {
-          method: "DELETE",
-          headers: authHeaders(),
-        }
-      );
+      const response =
+        await fetch(
+          `${API_BASE_URL}/api/teams/${selectedTeam.id}`,
+          {
+            method: "DELETE",
+            headers: authHeaders(),
+          }
+        );
 
       const data =
         response.status === 204
@@ -307,13 +356,16 @@ export default function TeamsPanel() {
 
       if (!response.ok) {
         throw new Error(
-          data?.detail || "Failed to delete team."
+          data?.detail ||
+            "Failed to delete team."
         );
       }
 
       setTeams((current) =>
         current.filter(
-          (team) => team.id !== selectedTeam.id
+          (team) =>
+            team.id !==
+            selectedTeam.id
         )
       );
 
@@ -331,156 +383,230 @@ export default function TeamsPanel() {
 
   return (
     <section className="feature-panel teams-panel">
-      <div className="feature-panel-header">
+
+      <div className="teams-page-header">
+
         <div>
-          <div className="section-kicker">
-            // COLLABORATION
+          <div className="teams-eyebrow">
+            COLLABORATION
           </div>
 
-          <h2>Teams</h2>
+          <h1>
+            Work together.
+          </h1>
 
           <p>
-            Build together, manage members and keep
-            projects organized.
+            Create teams, invite members and
+            organize projects in one place.
           </p>
         </div>
 
-        <div className="feature-panel-badge">
-          {teams.length}{" "}
-          {teams.length === 1
-            ? "TEAM"
-            : "TEAMS"}
+        <div className="teams-summary">
+          <span className="teams-summary-number">
+            {teams.length}
+          </span>
+
+          <span className="teams-summary-label">
+            {teams.length === 1
+              ? "TEAM"
+              : "TEAMS"}
+          </span>
         </div>
+
       </div>
 
+
       {error && (
-        <div className="feature-error">
+        <div className="teams-error">
           {error}
         </div>
       )}
 
+
       <div className="teams-layout">
-        {/* ================================================= */}
-        {/* TEAM LIST */}
-        {/* ================================================= */}
 
-        <div className="teams-sidebar">
-          <div className="feature-card create-team-card">
-            <div className="feature-card-label">
-              NEW TEAM
+        <aside className="teams-sidebar">
+
+          <div className="teams-create-card">
+
+            <div className="teams-card-eyebrow">
+              CREATE TEAM
             </div>
 
-            <div className="inline-form">
-              <input
-                value={teamName}
-                onChange={(event) =>
-                  setTeamName(event.target.value)
+            <h3>
+              Start collaborating
+            </h3>
+
+            <p>
+              Give your workspace a name
+              and bring your team together.
+            </p>
+
+            <input
+              value={teamName}
+              onChange={(event) =>
+                setTeamName(
+                  event.target.value
+                )
+              }
+              onKeyDown={(event) => {
+                if (
+                  event.key === "Enter"
+                ) {
+                  createTeam();
                 }
-                placeholder="Team name..."
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    createTeam();
-                  }
-                }}
-              />
+              }}
+              placeholder="e.g. Product Team"
+            />
 
-              <button
-                className="primary-feature-button"
-                onClick={createTeam}
-                disabled={loading}
-              >
-                {loading ? "Creating..." : "Create"}
-              </button>
-            </div>
+            <button
+              className="teams-primary-button"
+              onClick={createTeam}
+              disabled={loading}
+            >
+              {loading
+                ? "Creating..."
+                : "Create team →"}
+            </button>
+
           </div>
 
-          <div className="feature-card team-list-card">
-            <div className="feature-card-label">
-              YOUR TEAMS
+
+          <div className="teams-list-card">
+
+            <div className="teams-list-header">
+              <span>
+                YOUR TEAMS
+              </span>
+
+              <span>
+                {teams.length}
+              </span>
             </div>
 
-            {loading && teams.length === 0 ? (
-              <div className="feature-empty">
+            {loading &&
+            teams.length === 0 ? (
+              <div className="teams-empty">
                 Loading teams...
               </div>
             ) : teams.length === 0 ? (
-              <div className="feature-empty">
-                No teams yet.
+              <div className="teams-empty">
+                <div className="teams-empty-icon">
+                  +
+                </div>
+
+                <strong>
+                  No teams yet
+                </strong>
+
+                <span>
+                  Create your first team
+                  above.
+                </span>
               </div>
             ) : (
-              <div className="team-list">
+              <div className="teams-list">
+
                 {teams.map((team) => (
                   <button
                     key={team.id}
                     className={
-                      selectedTeam?.id === team.id
-                        ? "team-list-item active"
-                        : "team-list-item"
+                      selectedTeam?.id ===
+                      team.id
+                        ? "team-item active"
+                        : "team-item"
                     }
                     onClick={() =>
                       selectTeam(team)
                     }
                   >
-                    <span className="team-avatar">
+
+                    <span className="team-item-avatar">
                       {team.name
                         .charAt(0)
                         .toUpperCase()}
                     </span>
 
-                    <span className="team-list-info">
-                      <strong>{team.name}</strong>
+                    <span className="team-item-content">
+
+                      <strong>
+                        {team.name}
+                      </strong>
 
                       <small>
                         Team #{team.id}
                       </small>
+
                     </span>
 
-                    <span className="team-arrow">
+                    <span className="team-item-arrow">
                       →
                     </span>
+
                   </button>
                 ))}
+
               </div>
             )}
+
           </div>
-        </div>
 
-        {/* ================================================= */}
-        {/* TEAM DETAILS */}
-        {/* ================================================= */}
+        </aside>
 
-        <div className="team-details">
+
+        <div className="teams-content">
+
           {!selectedTeam ? (
-            <div className="feature-card team-placeholder">
-              <div className="placeholder-icon">
-                +
+
+            <div className="teams-welcome">
+
+              <div className="teams-welcome-symbol">
+                <span />
+                <span />
+                <span />
               </div>
 
-              <h3>Select a team</h3>
+              <div className="teams-eyebrow">
+                TEAM WORKSPACE
+              </div>
+
+              <h2>
+                Select a team
+                <br />
+                <span>to get started.</span>
+              </h2>
 
               <p>
-                Choose a team to manage members,
-                projects and collaboration.
+                Choose a team from the left
+                to manage members, projects
+                and collaboration.
               </p>
+
             </div>
+
           ) : (
+
             <>
-              <div className="feature-card team-hero-card">
-                <div className="team-hero-main">
-                  <div className="large-team-avatar">
+
+              <div className="team-detail-header">
+
+                <div className="team-detail-identity">
+
+                  <div className="team-large-avatar">
                     {selectedTeam.name
                       .charAt(0)
                       .toUpperCase()}
                   </div>
 
                   <div>
-                    <div className="feature-card-label">
+
+                    <div className="teams-card-eyebrow">
                       TEAM #{selectedTeam.id}
                     </div>
 
-                    <h3>
+                    <h2>
                       {selectedTeam.name}
-                    </h3>
+                    </h2>
 
                     <p>
                       Created{" "}
@@ -488,43 +614,54 @@ export default function TeamsPanel() {
                         selectedTeam.created_at
                       ).toLocaleDateString()}
                     </p>
+
                   </div>
+
                 </div>
 
                 <button
-                  className="danger-feature-button"
+                  className="teams-delete-button"
                   onClick={deleteTeam}
                 >
-                  Delete Team
+                  Delete team
                 </button>
+
               </div>
 
+
               {loadingDetails ? (
-                <div className="feature-card feature-empty">
-                  Loading team details...
+
+                <div className="teams-loading">
+                  Loading team workspace...
                 </div>
+
               ) : (
+
                 <div className="team-detail-grid">
-                  {/* MEMBERS */}
 
-                  <div className="feature-card">
-                    <div className="feature-card-top">
+                  <div className="team-detail-card">
+
+                    <div className="team-stat-header">
+
                       <div>
-                        <div className="feature-card-label">
+                        <span>
                           MEMBERS
-                        </div>
+                        </span>
 
-                        <h3>
+                        <strong>
                           {members.length}
-                        </h3>
+                        </strong>
                       </div>
 
-                      <span className="feature-card-icon">
+                      <div className="team-stat-icon">
                         ◉
-                      </span>
+                      </div>
+
                     </div>
 
-                    <div className="member-add-form">
+
+                    <div className="member-add">
+
                       <input
                         value={memberId}
                         onChange={(event) =>
@@ -537,32 +674,40 @@ export default function TeamsPanel() {
                       />
 
                       <button
-                        className="primary-feature-button"
+                        className="teams-primary-button"
                         onClick={addMember}
                       >
                         Add
                       </button>
+
                     </div>
 
+
                     <div className="member-list">
+
                       {members.length === 0 ? (
-                        <div className="feature-empty">
+
+                        <div className="teams-small-empty">
                           No members yet.
                         </div>
+
                       ) : (
+
                         members.map(
                           (member) => (
                             <div
-                              className="member-row"
+                              className="member-item"
                               key={member.id}
                             >
+
                               <div className="member-avatar">
                                 {String(
                                   member.user_id
                                 ).charAt(0)}
                               </div>
 
-                              <div className="member-info">
+                              <div className="member-details">
+
                                 <strong>
                                   User #
                                   {
@@ -573,10 +718,11 @@ export default function TeamsPanel() {
                                 <span>
                                   {member.role}
                                 </span>
+
                               </div>
 
                               <button
-                                className="small-danger-button"
+                                className="member-remove"
                                 onClick={() =>
                                   removeMember(
                                     member.user_id
@@ -585,46 +731,72 @@ export default function TeamsPanel() {
                               >
                                 ×
                               </button>
+
                             </div>
                           )
                         )
+
                       )}
+
                     </div>
+
                   </div>
 
-                  {/* PROJECTS */}
 
-                  <div className="feature-card">
-                    <div className="feature-card-top">
+                  <div className="team-detail-card">
+
+                    <div className="team-stat-header">
+
                       <div>
-                        <div className="feature-card-label">
+                        <span>
                           PROJECTS
-                        </div>
+                        </span>
 
-                        <h3>
+                        <strong>
                           {projects.length}
-                        </h3>
+                        </strong>
                       </div>
 
-                      <span className="feature-card-icon">
+                      <div className="team-stat-icon">
                         ◈
-                      </span>
+                      </div>
+
                     </div>
 
+
                     {projects.length === 0 ? (
-                      <div className="feature-empty">
-                        No projects assigned to
-                        this team.
+
+                      <div className="projects-empty">
+
+                        <div className="projects-empty-icon">
+                          ◈
+                        </div>
+
+                        <strong>
+                          No projects yet
+                        </strong>
+
+                        <span>
+                          Projects assigned to
+                          this team will appear
+                          here.
+                        </span>
+
                       </div>
+
                     ) : (
-                      <div className="team-project-list">
+
+                      <div className="team-projects">
+
                         {projects.map(
                           (project) => (
                             <div
-                              className="team-project-row"
+                              className="team-project"
                               key={project.id}
                             >
+
                               <div>
+
                                 <strong>
                                   {project.name}
                                 </strong>
@@ -633,24 +805,35 @@ export default function TeamsPanel() {
                                   {project.description ||
                                     "No description"}
                                 </span>
+
                               </div>
 
-                              <span className="project-status">
+                              <span className="project-pill">
                                 {project.status ||
                                   "ACTIVE"}
                               </span>
+
                             </div>
                           )
                         )}
+
                       </div>
+
                     )}
+
                   </div>
+
                 </div>
+
               )}
+
             </>
           )}
+
         </div>
+
       </div>
+
     </section>
   );
 }

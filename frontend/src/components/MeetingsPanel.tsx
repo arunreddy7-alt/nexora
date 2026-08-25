@@ -27,10 +27,12 @@ type Participant = {
 };
 
 function authHeaders(): HeadersInit {
-  const token = localStorage.getItem("access_token");
+  const token =
+    localStorage.getItem("access_token");
 
   return {
     "Content-Type": "application/json",
+
     ...(token
       ? {
           Authorization: `Bearer ${token}`,
@@ -39,70 +41,77 @@ function authHeaders(): HeadersInit {
   };
 }
 
+function getCurrentUserId(): number | null {
+  const token =
+    localStorage.getItem("access_token");
+
+  if (!token) return null;
+
+  try {
+    const payload = JSON.parse(
+      atob(
+        token
+          .split(".")[1]
+          .replace(/-/g, "+")
+          .replace(/_/g, "/")
+      )
+    );
+
+    return payload.sub
+      ? Number(payload.sub)
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function MeetingsPanel() {
-  const [meetings, setMeetings] = useState<Meeting[]>([]);
-  const [teams, setTeams] = useState<Team[]>([]);
-  const [participants, setParticipants] = useState<
-    Participant[]
-  >([]);
+  const [meetings, setMeetings] =
+    useState<Meeting[]>([]);
+
+  const [teams, setTeams] =
+    useState<Team[]>([]);
+
+  const [participants, setParticipants] =
+    useState<Participant[]>([]);
 
   const [selectedMeeting, setSelectedMeeting] =
     useState<Meeting | null>(null);
 
-  const [title, setTitle] = useState("");
+  const [title, setTitle] =
+    useState("");
+
   const [description, setDescription] =
     useState("");
 
   const [startTime, setStartTime] =
     useState("");
-  const [endTime, setEndTime] = useState("");
 
-  const [teamId, setTeamId] = useState("");
+  const [endTime, setEndTime] =
+    useState("");
+
+  const [teamId, setTeamId] =
+    useState("");
+
   const [participantId, setParticipantId] =
     useState("");
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] =
+    useState(false);
+
   const [detailsLoading, setDetailsLoading] =
     useState(false);
-  const [error, setError] = useState("");
 
-  const currentUserId = getCurrentUserId();
+  const [error, setError] =
+    useState("");
+
+  const currentUserId =
+    getCurrentUserId();
 
   useEffect(() => {
     loadMeetings();
     loadTeams();
   }, []);
-
-  function getCurrentUserId(): number | null {
-    /*
-     * The JWT contains the user ID in "sub".
-     * We decode it only for UI purposes.
-     * Backend authorization remains authoritative.
-     */
-
-    const token =
-      localStorage.getItem("access_token");
-
-    if (!token) {
-      return null;
-    }
-
-    try {
-      const payload = JSON.parse(
-        atob(
-          token.split(".")[1]
-            .replace(/-/g, "+")
-            .replace(/_/g, "/")
-        )
-      );
-
-      return payload.sub
-        ? Number(payload.sub)
-        : null;
-    } catch {
-      return null;
-    }
-  }
 
   async function loadMeetings() {
     try {
@@ -116,7 +125,8 @@ export default function MeetingsPanel() {
         }
       );
 
-      const data = await response.json();
+      const data =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
@@ -146,7 +156,8 @@ export default function MeetingsPanel() {
         }
       );
 
-      const data = await response.json();
+      const data =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
@@ -168,14 +179,16 @@ export default function MeetingsPanel() {
       setDetailsLoading(true);
       setError("");
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/meetings/${meetingId}/participants`,
-        {
-          headers: authHeaders(),
-        }
-      );
+      const response =
+        await fetch(
+          `${API_BASE_URL}/api/meetings/${meetingId}/participants`,
+          {
+            headers: authHeaders(),
+          }
+        );
 
-      const data = await response.json();
+      const data =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
@@ -200,7 +213,6 @@ export default function MeetingsPanel() {
     meeting: Meeting
   ) {
     setSelectedMeeting(meeting);
-
     await loadParticipants(
       meeting.id
     );
@@ -208,7 +220,9 @@ export default function MeetingsPanel() {
 
   async function createMeeting() {
     if (!title.trim()) {
-      setError("Enter a meeting title.");
+      setError(
+        "Enter a meeting title."
+      );
       return;
     }
 
@@ -219,8 +233,11 @@ export default function MeetingsPanel() {
       return;
     }
 
-    const start = new Date(startTime);
-    const end = new Date(endTime);
+    const start =
+      new Date(startTime);
+
+    const end =
+      new Date(endTime);
 
     if (end <= start) {
       setError(
@@ -233,25 +250,35 @@ export default function MeetingsPanel() {
       setLoading(true);
       setError("");
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/meetings`,
-        {
-          method: "POST",
-          headers: authHeaders(),
-          body: JSON.stringify({
-            title: title.trim(),
-            description:
-              description.trim() || null,
-            start_time: start.toISOString(),
-            end_time: end.toISOString(),
-            team_id: teamId
-              ? Number(teamId)
-              : null,
-          }),
-        }
-      );
+      const response =
+        await fetch(
+          `${API_BASE_URL}/api/meetings`,
+          {
+            method: "POST",
+            headers: authHeaders(),
 
-      const data = await response.json();
+            body: JSON.stringify({
+              title: title.trim(),
+
+              description:
+                description.trim() ||
+                null,
+
+              start_time:
+                start.toISOString(),
+
+              end_time:
+                end.toISOString(),
+
+              team_id: teamId
+                ? Number(teamId)
+                : null,
+            }),
+          }
+        );
+
+      const data =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
@@ -261,8 +288,8 @@ export default function MeetingsPanel() {
       }
 
       setMeetings((current) => [
-        ...current,
         data,
+        ...current,
       ]);
 
       setSelectedMeeting(data);
@@ -287,28 +314,34 @@ export default function MeetingsPanel() {
   async function addParticipant() {
     if (!selectedMeeting) return;
 
-    const userId = Number(participantId);
+    const userId =
+      Number(participantId);
 
     if (!userId || userId <= 0) {
-      setError("Enter a valid user ID.");
+      setError(
+        "Enter a valid user ID."
+      );
       return;
     }
 
     try {
       setError("");
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/meetings/${selectedMeeting.id}/participants`,
-        {
-          method: "POST",
-          headers: authHeaders(),
-          body: JSON.stringify({
-            user_id: userId,
-          }),
-        }
-      );
+      const response =
+        await fetch(
+          `${API_BASE_URL}/api/meetings/${selectedMeeting.id}/participants`,
+          {
+            method: "POST",
+            headers: authHeaders(),
 
-      const data = await response.json();
+            body: JSON.stringify({
+              user_id: userId,
+            }),
+          }
+        );
+
+      const data =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
@@ -340,18 +373,21 @@ export default function MeetingsPanel() {
     try {
       setError("");
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/meetings/${selectedMeeting.id}/participants/me`,
-        {
-          method: "PUT",
-          headers: authHeaders(),
-          body: JSON.stringify({
-            status,
-          }),
-        }
-      );
+      const response =
+        await fetch(
+          `${API_BASE_URL}/api/meetings/${selectedMeeting.id}/participants/me`,
+          {
+            method: "PUT",
+            headers: authHeaders(),
 
-      const data = await response.json();
+            body: JSON.stringify({
+              status,
+            }),
+          }
+        );
+
+      const data =
+        await response.json();
 
       if (!response.ok) {
         throw new Error(
@@ -361,11 +397,12 @@ export default function MeetingsPanel() {
       }
 
       setParticipants((current) =>
-        current.map((participant) =>
-          participant.user_id ===
-          currentUserId
-            ? data
-            : participant
+        current.map(
+          (participant) =>
+            participant.user_id ===
+            currentUserId
+              ? data
+              : participant
         )
       );
     } catch (error) {
@@ -385,13 +422,14 @@ export default function MeetingsPanel() {
     try {
       setError("");
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/meetings/${selectedMeeting.id}/participants/${userId}`,
-        {
-          method: "DELETE",
-          headers: authHeaders(),
-        }
-      );
+      const response =
+        await fetch(
+          `${API_BASE_URL}/api/meetings/${selectedMeeting.id}/participants/${userId}`,
+          {
+            method: "DELETE",
+            headers: authHeaders(),
+          }
+        );
 
       const data =
         response.status === 204
@@ -408,7 +446,8 @@ export default function MeetingsPanel() {
       setParticipants((current) =>
         current.filter(
           (participant) =>
-            participant.user_id !== userId
+            participant.user_id !==
+            userId
         )
       );
     } catch (error) {
@@ -423,22 +462,24 @@ export default function MeetingsPanel() {
   async function deleteMeeting() {
     if (!selectedMeeting) return;
 
-    const confirmed = window.confirm(
-      `Delete "${selectedMeeting.title}"?`
-    );
+    const confirmed =
+      window.confirm(
+        `Delete "${selectedMeeting.title}"?`
+      );
 
     if (!confirmed) return;
 
     try {
       setError("");
 
-      const response = await fetch(
-        `${API_BASE_URL}/api/meetings/${selectedMeeting.id}`,
-        {
-          method: "DELETE",
-          headers: authHeaders(),
-        }
-      );
+      const response =
+        await fetch(
+          `${API_BASE_URL}/api/meetings/${selectedMeeting.id}`,
+          {
+            method: "DELETE",
+            headers: authHeaders(),
+          }
+        );
 
       const data =
         response.status === 204
@@ -474,12 +515,15 @@ export default function MeetingsPanel() {
   function formatDate(
     value: string
   ) {
-    return new Date(value).toLocaleDateString(
+    return new Date(
+      value
+    ).toLocaleDateString(
       undefined,
       {
         weekday: "short",
         month: "short",
         day: "numeric",
+        year: "numeric",
       }
     );
   }
@@ -487,7 +531,9 @@ export default function MeetingsPanel() {
   function formatTime(
     value: string
   ) {
-    return new Date(value).toLocaleTimeString(
+    return new Date(
+      value
+    ).toLocaleTimeString(
       undefined,
       {
         hour: "numeric",
@@ -500,265 +546,391 @@ export default function MeetingsPanel() {
     meeting: Meeting
   ) {
     return (
-      new Date(meeting.start_time) >
-      new Date()
+      new Date(
+        meeting.start_time
+      ) > new Date()
     );
   }
 
+  const upcomingMeetings =
+    meetings.filter(
+      isUpcoming
+    ).length;
+
   return (
     <section className="feature-panel meetings-panel">
-      <div className="feature-panel-header">
+
+      <div className="meetings-page-header">
+
         <div>
-          <div className="section-kicker">
-            // COLLABORATION
+          <div className="meetings-eyebrow">
+            SCHEDULE
           </div>
 
-          <h2>Meetings</h2>
+          <h1>
+            Stay in sync.
+          </h1>
 
           <p>
-            Schedule meetings, invite teammates
-            and keep everyone aligned.
+            Plan conversations, invite
+            teammates and keep your
+            schedule organized.
           </p>
         </div>
 
-        <div className="feature-panel-badge">
-          {meetings.length}{" "}
-          {meetings.length === 1
-            ? "MEETING"
-            : "MEETINGS"}
+        <div className="meeting-summary">
+
+          <div>
+            <strong>
+              {upcomingMeetings}
+            </strong>
+
+            <span>
+              UPCOMING
+            </span>
+          </div>
+
+          <div>
+            <strong>
+              {meetings.length}
+            </strong>
+
+            <span>
+              TOTAL
+            </span>
+          </div>
+
         </div>
+
       </div>
 
+
       {error && (
-        <div className="feature-error">
+        <div className="meetings-error">
           {error}
         </div>
       )}
 
-      <div className="meetings-layout">
-        {/* ================================================= */}
-        {/* CREATE MEETING */}
-        {/* ================================================= */}
 
-        <div className="feature-card create-meeting-card">
-          <div className="feature-card-label">
+      <div className="meetings-layout">
+
+        {/* CREATE */}
+
+        <aside className="meeting-create-card">
+
+          <div className="meeting-card-eyebrow">
             NEW MEETING
           </div>
 
-          <input
-            value={title}
-            onChange={(event) =>
-              setTitle(event.target.value)
-            }
-            placeholder="Meeting title..."
-          />
+          <h3>
+            Schedule something.
+          </h3>
 
-          <textarea
-            value={description}
-            onChange={(event) =>
-              setDescription(
-                event.target.value
-              )
-            }
-            placeholder="Description..."
-            rows={3}
-          />
+          <p>
+            Set a time, add context and
+            optionally connect it to a team.
+          </p>
 
-          <div className="meeting-time-grid">
-            <div>
-              <label>START</label>
+          <div className="meeting-form">
 
-              <input
-                type="datetime-local"
-                value={startTime}
-                onChange={(event) =>
-                  setStartTime(
-                    event.target.value
-                  )
-                }
-              />
-            </div>
-
-            <div>
-              <label>END</label>
-
-              <input
-                type="datetime-local"
-                value={endTime}
-                onChange={(event) =>
-                  setEndTime(
-                    event.target.value
-                  )
-                }
-              />
-            </div>
-          </div>
-
-          <div>
-            <label>TEAM</label>
-
-            <select
-              value={teamId}
+            <input
+              value={title}
               onChange={(event) =>
-                setTeamId(
+                setTitle(
                   event.target.value
                 )
               }
-            >
-              <option value="">
-                Personal meeting
-              </option>
+              placeholder="Meeting title"
+            />
 
-              {teams.map((team) => (
-                <option
-                  key={team.id}
-                  value={team.id}
-                >
-                  {team.name}
-                </option>
-              ))}
-            </select>
-          </div>
+            <textarea
+              value={description}
+              onChange={(event) =>
+                setDescription(
+                  event.target.value
+                )
+              }
+              placeholder="What is this meeting about?"
+              rows={4}
+            />
 
-          <button
-            className="primary-feature-button full-feature-button"
-            onClick={createMeeting}
-            disabled={loading}
-          >
-            {loading
-              ? "Creating..."
-              : "Create Meeting →"}
-          </button>
-        </div>
+            <div className="meeting-time-grid">
 
-        {/* ================================================= */}
-        {/* MEETING LIST */}
-        {/* ================================================= */}
+              <div>
+                <label>
+                  START
+                </label>
 
-        <div className="feature-card meeting-list-card">
-          <div className="feature-card-label">
-            YOUR SCHEDULE
-          </div>
-
-          {loading && meetings.length === 0 ? (
-            <div className="feature-empty">
-              Loading meetings...
-            </div>
-          ) : meetings.length === 0 ? (
-            <div className="feature-empty">
-              No meetings scheduled.
-            </div>
-          ) : (
-            <div className="meeting-list">
-              {meetings.map((meeting) => (
-                <button
-                  key={meeting.id}
-                  className={
-                    selectedMeeting?.id ===
-                    meeting.id
-                      ? "meeting-list-item active"
-                      : "meeting-list-item"
-                  }
-                  onClick={() =>
-                    selectMeeting(
-                      meeting
+                <input
+                  type="datetime-local"
+                  value={startTime}
+                  onChange={(event) =>
+                    setStartTime(
+                      event.target.value
                     )
                   }
-                >
-                  <div className="meeting-date-block">
-                    <strong>
-                      {new Date(
-                        meeting.start_time
-                      ).getDate()}
-                    </strong>
+                />
+              </div>
 
-                    <span>
-                      {new Date(
-                        meeting.start_time
-                      ).toLocaleDateString(
-                        undefined,
-                        {
-                          month: "short",
-                        }
-                      )}
-                    </span>
-                  </div>
+              <div>
+                <label>
+                  END
+                </label>
 
-                  <div className="meeting-list-info">
-                    <strong>
-                      {meeting.title}
-                    </strong>
+                <input
+                  type="datetime-local"
+                  value={endTime}
+                  onChange={(event) =>
+                    setEndTime(
+                      event.target.value
+                    )
+                  }
+                />
+              </div>
 
-                    <span>
-                      {formatTime(
-                        meeting.start_time
-                      )}{" "}
-                      —{" "}
-                      {formatTime(
-                        meeting.end_time
-                      )}
-                    </span>
-
-                    <small>
-                      {meeting.team_id
-                        ? `Team #${meeting.team_id}`
-                        : "Personal"}
-                    </small>
-                  </div>
-
-                  <span
-                    className={
-                      isUpcoming(meeting)
-                        ? "meeting-status upcoming"
-                        : "meeting-status past"
-                    }
-                  >
-                    {isUpcoming(meeting)
-                      ? "UPCOMING"
-                      : "PAST"}
-                  </span>
-                </button>
-              ))}
             </div>
+
+            <div>
+              <label>
+                TEAM
+              </label>
+
+              <select
+                value={teamId}
+                onChange={(event) =>
+                  setTeamId(
+                    event.target.value
+                  )
+                }
+              >
+                <option value="">
+                  Personal meeting
+                </option>
+
+                {teams.map(
+                  (team) => (
+                    <option
+                      key={team.id}
+                      value={team.id}
+                    >
+                      {team.name}
+                    </option>
+                  )
+                )}
+              </select>
+            </div>
+
+            <button
+              className="meeting-primary-button"
+              onClick={
+                createMeeting
+              }
+              disabled={loading}
+            >
+              {loading
+                ? "Creating..."
+                : "Create Meeting →"}
+            </button>
+
+          </div>
+
+        </aside>
+
+
+        {/* MEETING LIST */}
+
+        <div className="meeting-list-card">
+
+          <div className="meeting-list-header">
+
+            <div>
+              <div className="meeting-card-eyebrow">
+                YOUR SCHEDULE
+              </div>
+
+              <h3>
+                Meetings
+              </h3>
+            </div>
+
+            <span className="meeting-count">
+              {meetings.length}
+            </span>
+
+          </div>
+
+
+          {loading &&
+          meetings.length === 0 ? (
+
+            <div className="meeting-empty">
+              Loading meetings...
+            </div>
+
+          ) : meetings.length === 0 ? (
+
+            <div className="meeting-empty">
+
+              <div className="meeting-empty-icon">
+                +
+              </div>
+
+              <strong>
+                Nothing scheduled
+              </strong>
+
+              <span>
+                Your upcoming meetings
+                will appear here.
+              </span>
+
+            </div>
+
+          ) : (
+
+            <div className="meeting-list">
+
+              {meetings.map(
+                (meeting) => {
+
+                  const date =
+                    new Date(
+                      meeting.start_time
+                    );
+
+                  return (
+                    <button
+                      key={meeting.id}
+                      className={
+                        selectedMeeting?.id ===
+                        meeting.id
+                          ? "meeting-item active"
+                          : "meeting-item"
+                      }
+                      onClick={() =>
+                        selectMeeting(
+                          meeting
+                        )
+                      }
+                    >
+
+                      <div className="meeting-date">
+
+                        <strong>
+                          {date.getDate()}
+                        </strong>
+
+                        <span>
+                          {date.toLocaleDateString(
+                            undefined,
+                            {
+                              month:
+                                "short",
+                            }
+                          )}
+                        </span>
+
+                      </div>
+
+                      <div className="meeting-item-info">
+
+                        <strong>
+                          {meeting.title}
+                        </strong>
+
+                        <span>
+                          {formatTime(
+                            meeting.start_time
+                          )}{" "}
+                          —{" "}
+                          {formatTime(
+                            meeting.end_time
+                          )}
+                        </span>
+
+                        <small>
+                          {meeting.team_id
+                            ? `Team #${meeting.team_id}`
+                            : "Personal"}
+                        </small>
+
+                      </div>
+
+                      <span
+                        className={
+                          isUpcoming(
+                            meeting
+                          )
+                            ? "meeting-status upcoming"
+                            : "meeting-status past"
+                        }
+                      >
+                        {isUpcoming(
+                          meeting
+                        )
+                          ? "UPCOMING"
+                          : "PAST"}
+                      </span>
+
+                    </button>
+                  );
+                }
+              )}
+
+            </div>
+
           )}
+
         </div>
+
       </div>
 
-      {/* =================================================== */}
-      {/* MEETING DETAILS */}
-      {/* =================================================== */}
+
+      {/* DETAILS */}
 
       {selectedMeeting && (
-        <div className="meeting-details feature-card">
+        <div className="meeting-details-card">
+
           <div className="meeting-details-header">
+
             <div>
-              <div className="feature-card-label">
+
+              <div className="meeting-card-eyebrow">
                 {selectedMeeting.team_id
                   ? `TEAM MEETING · TEAM #${selectedMeeting.team_id}`
                   : "PERSONAL MEETING"}
               </div>
 
-              <h3>
+              <h2>
                 {selectedMeeting.title}
-              </h3>
+              </h2>
 
               <p>
                 {selectedMeeting.description ||
                   "No description provided."}
               </p>
+
             </div>
 
             <button
-              className="danger-feature-button"
-              onClick={deleteMeeting}
+              className="meeting-delete-button"
+              onClick={
+                deleteMeeting
+              }
             >
               Delete
             </button>
+
           </div>
 
-          <div className="meeting-info-strip">
+
+          <div className="meeting-info-grid">
+
             <div>
-              <span>DATE</span>
+              <span>
+                DATE
+              </span>
+
               <strong>
                 {formatDate(
                   selectedMeeting.start_time
@@ -767,7 +939,10 @@ export default function MeetingsPanel() {
             </div>
 
             <div>
-              <span>TIME</span>
+              <span>
+                TIME
+              </span>
+
               <strong>
                 {formatTime(
                   selectedMeeting.start_time
@@ -780,7 +955,10 @@ export default function MeetingsPanel() {
             </div>
 
             <div>
-              <span>ORGANIZER</span>
+              <span>
+                ORGANIZER
+              </span>
+
               <strong>
                 User #
                 {
@@ -788,24 +966,31 @@ export default function MeetingsPanel() {
                 }
               </strong>
             </div>
+
           </div>
 
-          <div className="meeting-participant-section">
-            <div className="feature-card-top">
+
+          <div className="meeting-participants">
+
+            <div className="meeting-participants-header">
+
               <div>
-                <div className="feature-card-label">
+                <div className="meeting-card-eyebrow">
                   PARTICIPANTS
                 </div>
 
-                <h3>
+                <strong>
                   {participants.length}
-                </h3>
+                </strong>
               </div>
+
             </div>
+
 
             {selectedMeeting.organizer_id ===
               currentUserId && (
-              <div className="member-add-form">
+              <div className="participant-invite">
+
                 <input
                   value={participantId}
                   onChange={(event) =>
@@ -818,39 +1003,52 @@ export default function MeetingsPanel() {
                 />
 
                 <button
-                  className="primary-feature-button"
+                  className="meeting-primary-button"
                   onClick={
                     addParticipant
                   }
                 >
                   Invite
                 </button>
+
               </div>
             )}
 
+
             {detailsLoading ? (
-              <div className="feature-empty">
+
+              <div className="meeting-empty compact">
                 Loading participants...
               </div>
-            ) : participants.length === 0 ? (
-              <div className="feature-empty">
+
+            ) : participants.length ===
+              0 ? (
+
+              <div className="meeting-empty compact">
                 No participants yet.
               </div>
+
             ) : (
-              <div className="member-list">
+
+              <div className="participant-list">
+
                 {participants.map(
                   (participant) => (
                     <div
-                      className="member-row"
-                      key={participant.id}
+                      className="participant-row"
+                      key={
+                        participant.id
+                      }
                     >
-                      <div className="member-avatar">
+
+                      <div className="participant-avatar">
                         {String(
                           participant.user_id
                         ).charAt(0)}
                       </div>
 
-                      <div className="member-info">
+                      <div className="participant-info">
+
                         <strong>
                           User #
                           {
@@ -858,17 +1056,24 @@ export default function MeetingsPanel() {
                           }
                         </strong>
 
-                        <span>
-                          {participant.status}
+                        <span
+                          className={`participant-status status-${participant.status}`}
+                        >
+                          {
+                            participant.status
+                          }
                         </span>
+
                       </div>
 
+
                       <div className="participant-actions">
+
                         {participant.user_id ===
                           currentUserId && (
                           <>
                             <button
-                              className="status-button"
+                              className="participant-button"
                               onClick={() =>
                                 updateMyStatus(
                                   "accepted"
@@ -879,7 +1084,7 @@ export default function MeetingsPanel() {
                             </button>
 
                             <button
-                              className="status-button"
+                              className="participant-button"
                               onClick={() =>
                                 updateMyStatus(
                                   "declined"
@@ -890,7 +1095,7 @@ export default function MeetingsPanel() {
                             </button>
 
                             <button
-                              className="status-button"
+                              className="participant-button primary"
                               onClick={() =>
                                 updateMyStatus(
                                   "joined"
@@ -906,26 +1111,33 @@ export default function MeetingsPanel() {
                           currentUserId &&
                           participant.user_id !==
                             currentUserId && (
-                            <button
-                              className="small-danger-button"
-                              onClick={() =>
-                                removeParticipant(
-                                  participant.user_id
-                                )
-                              }
-                            >
-                              ×
-                            </button>
-                          )}
+                          <button
+                            className="participant-remove"
+                            onClick={() =>
+                              removeParticipant(
+                                participant.user_id
+                              )
+                            }
+                          >
+                            ×
+                          </button>
+                        )}
+
                       </div>
+
                     </div>
                   )
                 )}
+
               </div>
+
             )}
+
           </div>
+
         </div>
       )}
+
     </section>
   );
 }
